@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { JsonForms } from '@jsonforms/react';
-import {
-  rankWith, and, schemaMatches, uiTypeIs, scopeEndsWith
-} from '@jsonforms/core';
+import { rankWith, and, schemaMatches, uiTypeIs, scopeEndsWith } from '@jsonforms/core';
 import { withJsonFormsControlProps } from '@jsonforms/react';
 import { materialCells, materialRenderers } from '@jsonforms/material-renderers';
 import schema from '../schema.json';
@@ -13,10 +11,12 @@ import {
 } from '@mui/material';
 import { createFilterOptions } from '@mui/material/Autocomplete';
 import { Link as RouterLink } from 'react-router-dom';
-import { authHeaders, getToken } from '../auth';
+import { fetchAuth, getToken } from '../auth';
 
 /** ---------- Typen ---------- */
-type Person = { titel?: string; name?: string; gruppen?: string; erlaeuterung?: string; };
+type Person = {
+  titel?: string; name?: string; gruppen?: string; erlaeuterung?: string;
+};
 type Modul = {
   fakultaet?: string; studiengang?: string; fs?: string;
   gruppen?: string; modulnr?: string; modulname?: string; lehrveranstaltung?: string;
@@ -27,6 +27,7 @@ type Modul = {
   name?: string; unterschrift?: string; rueckgabedatum?: string;
   profUnterschrift?: string; dekanUnterschrift?: string; datumUnterschrift?: string;
   lesende?: Person[]; seminarleiter?: Person[]; praktikumsleiter?: Person[];
+  dozentAbgegeben?: boolean; // falls du das Badge-Feature nutzt
 };
 type Item = { id?: string; modul?: Modul; };
 type Model = Item[];
@@ -38,7 +39,11 @@ const API = 'http://localhost:5050/Zuarbeit';
 import modulesJson from '../../config/INB_module.json';
 
 /** ---------- Utils ---------- */
-const ensureArray = <T,>(v: any): T[] => Array.isArray(v) ? v as T[] : (v == null ? [] : [v as T]);
+const ensureArray = <T,>(v: any): T[] => {
+  if (Array.isArray(v)) return v as T[];
+  if (v == null) return [];
+  return [v as T];
+};
 const trimStringsDeep = (obj: any): any => {
   if (obj == null) return obj;
   if (Array.isArray(obj)) return obj.map(trimStringsDeep);
@@ -47,9 +52,9 @@ const trimStringsDeep = (obj: any): any => {
     for (const [k, v] of Object.entries(obj)) out[k] = trimStringsDeep(v);
     return out;
   }
-  return typeof obj === 'string' ? obj.trim() : obj;
+  if (typeof obj === 'string') return obj.trim();
+  return obj;
 };
-
 const normalizeItem = (it: Item): Item => {
   const modul = it?.modul ?? {};
   return trimStringsDeep({
@@ -62,7 +67,6 @@ const normalizeItem = (it: Item): Item => {
     }
   });
 };
-/** Nur für LOAD */
 const normalizeForLoad = (inObj: any): Item => {
   const id = inObj?.id ?? undefined;
   const modul = inObj?.modul ?? {};
@@ -77,7 +81,7 @@ const normalizeForLoad = (inObj: any): Item => {
   };
 };
 
-/** ---------- Semester-Helpers (wie bei dir) ---------- */
+/** ---------- Semester-Helpers ---------- */
 const computeSemesterFromDate = (d = new Date()): { kind: 'SoSe'|'WiSe'; year: number } => {
   const y = d.getFullYear(), m = d.getMonth()+1;
   return (m >= 4 && m <= 9) ? { kind:'SoSe', year:y } : { kind:'WiSe', year:y };
@@ -99,20 +103,25 @@ const extractPrograms = (m?: Modul): string[] => {
   if (/\bMIB\b/.test(s)) set.add('MIB');
   return set.size ? Array.from(set) : ['INB', 'MIB'];
 };
+
 const computeGruppenForNextSemester = (m?: Modul): string => {
   const sem = nextSemester(computeSemesterFromDate());
   const programs = extractPrograms(m);
   const cohorts: number[] = sem.kind === 'WiSe'
     ? [sem.year + 1, sem.year, sem.year - 1]
     : [sem.year, sem.year - 1];
+
   const parts: string[] = [];
-  for (const prog of programs) for (const c of cohorts) parts.push(`${prog}${yy(c)}`);
+  for (const prog of programs) {
+    for (const c of cohorts) parts.push(`${prog}${yy(c)}`);
+  }
   return parts.join(' + ');
 };
 
 /** ---------- KW-Optionen ---------- */
 const pad2 = (n: number) => String(n).padStart(2, '0');
 const kw = (n: number) => `KW${pad2(n)}`;
+
 const getKWOptionsForPlannedSemester = () => {
   const sem = nextSemester(computeSemesterFromDate());
   if (sem.kind === 'WiSe') {
@@ -126,6 +135,8 @@ const getKWOptionsForPlannedSemester = () => {
 
 /** ---------- Mapping aus Modul-JSON ---------- */
 type RawMod = any;
+
+// Titles aus Namen entfernen
 const stripTitles = (s?: string): string => {
   if (!s) return '';
   let name = s.trim();
@@ -136,6 +147,7 @@ const stripTitles = (s?: string): string => {
   name = name.replace(new RegExp(`\\b(?:${anywhere.join('|')})\\b\\.?`,'gi'),'').replace(/\s+/g,' ').trim();
   return name.replace(/\s*,\s*/g,' ').replace(/\s{2,}/g,' ').trim();
 };
+
 const mapModuleToForm = (mod: RawMod): Partial<Modul> => {
   if (!mod) return {};
   const swsV = mod?.Lehrveranstaltungen?.SWS_V ?? '';
@@ -145,8 +157,10 @@ const mapModuleToForm = (mod: RawMod): Partial<Modul> => {
   const anrede = (mv?.Anrede ?? '').toString().trim();
   const vor    = (mv?.Vorname ?? '').toString().trim();
   const nach   = (mv?.Nachname ?? '').toString().trim();
+
   const displayName = stripTitles([vor, nach].filter(Boolean).join(' ').trim());
   const displayNameWithTitle = [anrede, vor, nach].filter(Boolean).join(' ').trim();
+
   return {
     fakultaet: mod?.['Fakultät'] ?? '',
     studiengang: Array.isArray(mod?.ZusammenMit) ? mod.ZusammenMit.join(', ') : '',
@@ -160,9 +174,11 @@ const mapModuleToForm = (mod: RawMod): Partial<Modul> => {
     unterschrift: displayNameWithTitle
   };
 };
+
 const AUTO_KEYS: (keyof Modul)[] = [
   'fakultaet','studiengang','fs','modulnr','modulname','swsVorlesung','swsSeminar','swsPraktikum','name','unterschrift'
 ];
+
 const mergeAutoFill = (oldItem: Item, auto: Partial<Modul>): Item => {
   const oldMod = oldItem?.modul ?? {};
   const next: Modul = { ...oldMod };
@@ -172,6 +188,7 @@ const mergeAutoFill = (oldItem: Item, auto: Partial<Modul>): Item => {
   }
   return { ...oldItem, modul: next };
 };
+
 const numOrZero = (v: any): number => {
   if (v == null) return 0;
   const s = String(v).trim();
@@ -180,17 +197,22 @@ const numOrZero = (v: any): number => {
   if (!Number.isNaN(n)) return n;
   return 1;
 };
+
 const applyLeadersIfNeeded = (oldItem: Item, auto: Partial<Modul>, raw: RawMod): Item => {
   const mv = raw?.Modulverantwortliche || {};
   const anrede = (mv?.Anrede ?? '').toString().trim();
   const vor    = (mv?.Vorname ?? '').toString().trim();
   const nach   = (mv?.Nachname ?? '').toString().trim();
+
   const displayName = stripTitles([vor, nach].filter(Boolean).join(' ').trim());
+
   const prevMod = oldItem?.modul ?? {};
   const effV = numOrZero((auto.swsVorlesung ?? prevMod.swsVorlesung));
   const effS = numOrZero((auto.swsSeminar   ?? prevMod.swsSeminar));
   const effP = numOrZero((auto.swsPraktikum ?? prevMod.swsPraktikum));
+
   const next: Item = { ...oldItem, modul: { ...prevMod } };
+
   const ensureFirst = (arr?: Person[]): Person[] => {
     const a = Array.isArray(arr) ? [...arr] : [];
     if (!a[0]) a[0] = {};
@@ -200,15 +222,20 @@ const applyLeadersIfNeeded = (oldItem: Item, auto: Partial<Modul>, raw: RawMod):
     if (anrede && !p.titel) p.titel = anrede;
     if (displayName && !p.name) p.name = displayName;
   };
+
   if (effV > 0) { const a = ensureFirst(next.modul!.lesende); fillIfEmpty(a[0]); next.modul!.lesende = a; }
   if (effS > 0) { const a = ensureFirst(next.modul!.seminarleiter); fillIfEmpty(a[0]); next.modul!.seminarleiter = a; }
   if (effP > 0) { const a = ensureFirst(next.modul!.praktikumsleiter); fillIfEmpty(a[0]); next.modul!.praktikumsleiter = a; }
+
   const withTitle = [anrede, vor, nach].filter(Boolean).join(' ').trim();
-  if (!next.modul!.unterschrift && withTitle) next.modul!.unterschrift = withTitle;
+  if (!next.modul!.unterschrift && withTitle) {
+    next.modul!.unterschrift = withTitle;
+  }
+
   return next;
 };
 
-/** ---------- IDs ---------- */
+/** ---------- Stabile IDs ---------- */
 const toSlug = (s: string): string => {
   const map: Record<string,string>={ä:'ae',ö:'oe',ü:'ue',ß:'ss',Ä:'ae',Ö:'oe',Ü:'ue'};
   const r = s.replace(/[ÄÖÜäöüß]/g,(c)=>map[c]??c);
@@ -219,14 +246,18 @@ const pickLecturerName = (m?: Modul): string => {
     .filter((x): x is string => !!x && x.trim().length>0);
   return stripTitles(c[0] ?? '');
 };
+
 const computeStableId = (it: Item): string | undefined => {
   const nr = it?.modul?.modulnr?.trim() ?? '';
   const lecturer = pickLecturerName(it?.modul);
   if (!nr || !lecturer) return undefined;
+
   const planned = nextSemester(computeSemesterFromDate());
   const semPart = formatSemesterForId(planned);
+
   return `${toSlug(nr)}__${toSlug(lecturer)}__${semPart}`;
 };
+
 const assignIdsIfMissing = (items: Model, existingIds: Set<string>): Model => {
   const used = new Set<string>([
     ...existingIds,
@@ -245,107 +276,225 @@ const assignIdsIfMissing = (items: Model, existingIds: Set<string>): Model => {
   return out;
 };
 
-/** ---------- Free-Solo Control usw. (wie bei dir) ---------- */
+/** ---------- Free-Solo Autocomplete ---------- */
 type FSProps = {
-  data: any; handleChange: (path: string, value: any) => void; path: string;
-  label?: string; errors?: string; enabled?: boolean; uischema?: any;
+  data: any;
+  handleChange: (path: string, value: any) => void;
+  path: string;
+  label?: string;
+  errors?: string;
+  enabled?: boolean;
+  uischema?: any;
 };
+
 const FreeSoloModulnrControlBase = (props: FSProps & { options: { value: string; label: string }[] }) => {
   const { data, handleChange, path, label, enabled = true, options } = props;
+
   const labelMap = useMemo(() => {
     const m = new Map<string, string>();
     for (const o of options) m.set(o.value, o.label);
     return m;
   }, [options]);
+
   const allValues = useMemo(() => options.map(o => o.value), [options]);
+
   const filterOptions = useMemo(() => {
-    return createFilterOptions<string>({ stringify: (opt) => `${opt} ${labelMap.get(opt) ?? ''}` });
+    return createFilterOptions<string>({
+      stringify: (opt) => `${opt} ${labelMap.get(opt) ?? ''}`,
+    });
   }, [labelMap]);
+
   return (
     <Autocomplete<string, false, false, true>
-      freeSolo disabled={!enabled} options={allValues} filterOptions={filterOptions}
-      value={data ?? ''} isOptionEqualToValue={(opt, val) => opt === val}
+      freeSolo
+      disabled={!enabled}
+      options={allValues}
+      filterOptions={filterOptions}
+      value={data ?? ''}
+      isOptionEqualToValue={(opt, val) => opt === val}
       onChange={(_, val) => handleChange(path, typeof val === 'string' ? val : '')}
-      onInputChange={(_, val, reason) => { if (reason !== 'reset') handleChange(path, val ?? ''); }}
+      onInputChange={(_, val, reason) => {
+        if (reason !== 'reset') handleChange(path, val ?? '');
+      }}
       getOptionLabel={(opt) => String(opt ?? '')}
-      renderOption={(liProps, option) => (<li {...liProps} key={option}>{labelMap.get(option) ?? option}</li>)}
-      renderInput={(params) => (<TextField {...params} label={label ?? 'Modulnummer'} variant="outlined" />)}
+      renderOption={(liProps, option) => (
+        <li {...liProps} key={option}>
+          {labelMap.get(option) ?? option}
+        </li>
+      )}
+      renderInput={(params) => (
+        <TextField {...params} label={label ?? 'Modulnummer'} variant="outlined" />
+      )}
     />
   );
 };
 const FreeSoloModulnrControl = withJsonFormsControlProps(FreeSoloModulnrControlBase);
-const freeSoloTester = rankWith(5, and(uiTypeIs('Control'), scopeEndsWith('modulnr'), schemaMatches((s) => (s as any)?.type === 'string')));
 
-type KWProps = { data: any; handleChange: (path: string, value: any) => void; path: string; label?: string; enabled?: boolean; };
+const freeSoloTester = rankWith(
+  5,
+  and(
+    uiTypeIs('Control'),
+    scopeEndsWith('modulnr'),
+    schemaMatches((s) => (s as any)?.type === 'string')
+  )
+);
+
+/** ---------- Custom Control: KW-Checkboxen ---------- */
+type KWProps = {
+  data: any;
+  handleChange: (path: string, value: any) => void;
+  path: string;
+  label?: string;
+  enabled?: boolean;
+};
+
 const KwHinweiseControlBase = ({ data, handleChange, path, label = 'KW-Hinweise', enabled = true }: KWProps) => {
   const options = useMemo(() => getKWOptionsForPlannedSemester(), []);
   const selectedSet = useMemo(() => {
     const set = new Set<string>();
     const s = String(data ?? '').trim();
     if (!s) return set;
-    for (const part of s.split(',').map(p => p.trim()).filter(Boolean)) set.add(part.toUpperCase());
+    for (const part of s.split(',').map(p => p.trim()).filter(Boolean)) {
+      set.add(part.toUpperCase());
+    }
     return set;
   }, [data]);
+
   const toggle = (code: string) => {
     const next = new Set(selectedSet);
     if (next.has(code)) next.delete(code); else next.add(code);
     const out = options.filter(o => next.has(o)).join(', ');
     handleChange(path, out);
   };
+
   return (
     <Box sx={{ border: '1px solid #e0e0e0', borderRadius: 1.5, p: 1.5 }}>
       <Typography variant="subtitle2" sx={{ mb: 1 }}>{label}</Typography>
       <FormGroup row>
         {options.map(code => (
-          <FormControlLabel key={code}
-            control={<Checkbox size="small" disabled={!enabled} checked={selectedSet.has(code)} onChange={() => toggle(code)} />}
-            label={code} sx={{ mr: 1.5 }}
+          <FormControlLabel
+            key={code}
+            control={
+              <Checkbox
+                size="small"
+                disabled={!enabled}
+                checked={selectedSet.has(code)}
+                onChange={() => toggle(code)}
+              />
+            }
+            label={code}
+            sx={{ mr: 1.5 }}
           />
         ))}
       </FormGroup>
     </Box>
   );
 };
-const KwHinweiseControl = withJsonFormsControlProps(KwHinweiseControlBase);
-const kwHinweiseTester = rankWith(6, and(uiTypeIs('Control'), scopeEndsWith('kwHinweise'), schemaMatches((s) => (s as any)?.type === 'string')));
 
-type PlanProps = { data: any; handleChange: (path: string, value: any) => void; path: string; label?: string; enabled?: boolean; };
-const PLAN_OPTIONS = [
-  { id: 'even-odd-balanced', label: 'gleichmäßige Verteilung von Vorlesungen und Seminaren auf gerade und ungerade Wochen.', text: 'gleichmäßige Verteilung von Vorlesungen und Seminaren auf gerade und ungerade Wochen.' },
-  { id: 'split-weeks',       label: 'Vorlesungen in der einen und Seminare in der anderen Woche.', text: 'Vorlesungen in der einen und Seminare in der anderen Woche.' },
-  { id: 'block-yes',         label: 'Blockplanung (2 x 90 min hintereinander) von Vorlesungen, Seminaren oder Praktika einer Seminargruppe.', text: 'Blockplanung (2 x 90 min hintereinander) von Vorlesungen, Seminaren oder Praktika einer Seminargruppe.' },
-  { id: 'block-no',          label: 'keine Blockplanung in einer Seminargruppe.', text: 'keine Blockplanung in einer Seminargruppe.' },
-  { id: 'lecture-before-seminar', label: 'Vorlesung zwingend vor Seminar.', text: 'Vorlesung zwingend vor Seminar.' }
+const KwHinweiseControl = withJsonFormsControlProps(KwHinweiseControlBase);
+const kwHinweiseTester = rankWith(
+  6,
+  and(
+    uiTypeIs('Control'),
+    scopeEndsWith('kwHinweise'),
+    schemaMatches((s) => (s as any)?.type === 'string')
+  )
+);
+
+/** ---------- Custom Control: Planungshinweise ---------- */
+type PlanProps = {
+  data: any;
+  handleChange: (path: string, value: any) => void;
+  path: string;
+  label?: string;
+  enabled?: boolean;
+};
+
+const PLAN_OPTIONS: { id: string; label: string; text: string }[] = [
+  {
+    id: 'even-odd-balanced',
+    label: 'gleichmäßige Verteilung von Vorlesungen und Seminaren auf gerade und ungerade Wochen.',
+    text: 'gleichmäßige Verteilung von Vorlesungen und Seminaren auf gerade und ungerade Wochen.'
+  },
+  {
+    id: 'split-weeks',
+    label: 'Vorlesungen in der einen und Seminare in der anderen Woche.',
+    text: 'Vorlesungen in der einen und Seminaren in der anderen Woche.'
+  },
+  {
+    id: 'block-yes',
+    label: 'Blockplanung (2 x 90 min hintereinander) von Vorlesungen, Seminaren oder Praktika einer Seminargruppe.',
+    text: 'Blockplanung (2 x 90 min hintereinander) von Vorlesungen, Seminaren oder Praktika einer Seminargruppe.'
+  },
+  {
+    id: 'block-no',
+    label: 'keine Blockplanung in einer Seminargruppe.',
+    text: 'keine Blockplanung in einer Seminargruppe.'
+  },
+  {
+    id: 'lecture-before-seminar',
+    label: 'Vorlesung zwingend vor Seminar.',
+    text: 'Vorlesung zwingend vor Seminar.'
+  }
 ];
-const PlanungshinweiseControlBase = ({ data, handleChange, path, label = 'Planungshinweise', enabled = true }: PlanProps) => {
+
+const PlanungshinweiseControlBase = ({
+  data,
+  handleChange,
+  path,
+  label = 'Planungshinweise',
+  enabled = true
+}: PlanProps) => {
   const selectedSet = useMemo(() => {
     const s = String(data ?? '');
     const set = new Set<string>();
     for (const o of PLAN_OPTIONS) if (s.includes(o.text)) set.add(o.id);
     return set;
   }, [data]);
+
   const toggle = (id: string) => {
     const next = new Set(selectedSet);
     if (next.has(id)) next.delete(id); else next.add(id);
-    const out = PLAN_OPTIONS.filter(o => next.has(o.id)).map(o => o.text).join('\n');
+    const out = PLAN_OPTIONS
+      .filter(o => next.has(o.id))
+      .map(o => o.text)
+      .join('\n');
     handleChange(path, out);
   };
+
   return (
     <Box sx={{ border: '1px solid #e0e0e0', borderRadius: 1.5, p: 1.5 }}>
       <Typography variant="subtitle2" sx={{ mb: 1 }}>{label}</Typography>
       <FormGroup>
         {PLAN_OPTIONS.map(o => (
-          <FormControlLabel key={o.id}
-            control={<Checkbox size="small" disabled={!enabled} checked={selectedSet.has(o.id)} onChange={() => toggle(o.id)} />}
-            label={o.label} sx={{ mr: 1.5 }}
+          <FormControlLabel
+            key={o.id}
+            control={
+              <Checkbox
+                size="small"
+                disabled={!enabled}
+                checked={selectedSet.has(o.id)}
+                onChange={() => toggle(o.id)}
+              />
+            }
+            label={o.label}
+            sx={{ mr: 1.5 }}
           />
         ))}
       </FormGroup>
     </Box>
   );
 };
+
 const PlanungshinweiseControl = withJsonFormsControlProps(PlanungshinweiseControlBase);
-const planungshinweiseTester = rankWith(6, and(uiTypeIs('Control'), scopeEndsWith('planungshinweise'), schemaMatches((s) => (s as any)?.type === 'string')));
+const planungshinweiseTester = rankWith(
+  6,
+  and(
+    uiTypeIs('Control'),
+    scopeEndsWith('planungshinweise'),
+    schemaMatches((s) => (s as any)?.type === 'string')
+  )
+);
 
 /** ---------- Komponente ---------- */
 export const JsonFormsDemo = () => {
@@ -366,32 +515,39 @@ export const JsonFormsDemo = () => {
   }, []);
 
   const modulnrOptions = useMemo(
-    () => (modulesJson as RawMod[])
-      .map((m) => ({
-        value: String(m['Modulnummer']).trim(),
-        label: `${String(m['Modulnummer']).trim()} – ${String(m['Modulbezeichnung']).trim()}`
-      }))
-      .filter((o) => o.value),
+    () =>
+      (modulesJson as RawMod[])
+        .map((m) => ({
+          value: String(m['Modulnummer']).trim(),
+          label: `${String(m['Modulnummer']).trim()} – ${String(m['Modulbezeichnung']).trim()}`
+        }))
+        .filter((o) => o.value),
     []
   );
 
-  const renderers = useMemo(() => ([
-    ...materialRenderers,
-    { tester: freeSoloTester, renderer: (p: any) => (<FreeSoloModulnrControl {...p} options={modulnrOptions} />) },
-    { tester: kwHinweiseTester, renderer: (p: any) => (<KwHinweiseControl {...p} />) },
-    { tester: planungshinweiseTester, renderer: (p: any) => (<PlanungshinweiseControl {...p} />) }
-  ]), [modulnrOptions]);
+  const renderers = useMemo(() => {
+    return [
+      ...materialRenderers,
+      { tester: freeSoloTester, renderer: (p: any) => (<FreeSoloModulnrControl {...p} options={modulnrOptions} />) },
+      { tester: kwHinweiseTester, renderer: (p: any) => (<KwHinweiseControl {...p} />) },
+      { tester: planungshinweiseTester, renderer: (p: any) => (<PlanungshinweiseControl {...p} />) }
+    ];
+  }, [modulnrOptions]);
 
   const haveToken = !!getToken();
 
-  /** Laden (nur als Manager mit Token möglich) */
+  /** Laden – nur mit Token */
   const load = async () => {
     try {
       setStatus('loading');
-      const res = await fetch(API, { headers: { ...authHeaders() } });
+      const res = await fetchAuth(API);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const raw = await res.json();
-      const items: Item[] = (Array.isArray(raw) ? raw : [raw]).filter(Boolean).map(normalizeForLoad);
+
+      const items: Item[] = (Array.isArray(raw) ? raw : [raw])
+        .filter(Boolean)
+        .map((inObj: any) => normalizeForLoad(inObj));
+
       setData(items);
       lastModNrRef.current = items.map(it => it?.modul?.modulnr?.trim() ?? '');
       idRef.current = items.map(it => it?.id);
@@ -400,60 +556,65 @@ export const JsonFormsDemo = () => {
       setStatus('error');
     }
   };
+
   useEffect(() => { if (haveToken) load(); }, [haveToken]);
 
-  /** Speichern (nur Manager) */
+  /** Speichern – nur mit Token */
   const save = async () => {
     if (hasErrors) return;
     try {
       setStatus('saving');
 
-      const existingRes = await fetch(API, { headers: { ...authHeaders() } });
+      // existierende IDs laden
+      const existingRes = await fetchAuth(API);
       const existing: any[] = existingRes.ok ? await existingRes.json() : [];
       const existingIds = new Set((existing ?? []).map((e) => e?.id).filter(Boolean));
 
+      // Arbeitskopie
       let working: Model = data ?? [];
+
+      // Fehlende IDs vergeben; bestehende behalten
       working = assignIdsIfMissing(working, existingIds);
 
+      // Diff: Deletes
       const currentIds = new Set((working ?? []).map((b) => b.id).filter(Boolean) as string[]);
       const toDelete = Array.from(existingIds).filter((id) => !currentIds.has(id as string));
       await Promise.all(
         toDelete.map((id) =>
-          fetch(`${API}/${encodeURIComponent(id as string)}`, {
-            method: 'DELETE',
-            headers: { ...authHeaders() }
-          }).then((r) => { if (!r.ok) throw new Error('DELETE'); })
+          fetchAuth(`${API}/${encodeURIComponent(id as string)}`, { method: 'DELETE' })
+            .then((r) => { if (!r.ok) throw new Error('DELETE'); })
         )
       );
 
+      // Upsert
       const updated: Model = [];
       for (const item of working ?? []) {
-        const bodyObj = normalizeItem(item);
+        const bodyObj = normalizeItem(item); // hier wird „sauber“ gemacht
         const body = JSON.stringify(bodyObj);
 
         if (item.id && existingIds.has(item.id)) {
-          const res = await fetch(`${API}/${encodeURIComponent(item.id)}`, {
+          const res = await fetchAuth(`${API}/${encodeURIComponent(item.id)}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json', ...authHeaders() },
+            headers: { 'Content-Type': 'application/json' },
             body
           });
           if (!res.ok) throw new Error('PUT');
           const saved = await res.json().catch(() => bodyObj);
-          updated.push(normalizeItem(saved));
+          updated.push(saved);
         } else {
-          const res = await fetch(API, {
+          const res = await fetchAuth(API, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...authHeaders() },
+            headers: { 'Content-Type': 'application/json' },
             body
           });
           if (!res.ok) throw new Error('POST');
           const created = await res.json().catch(() => ({}));
           const effectiveId = item.id ?? (created as any)?.id;
-          updated.push(normalizeItem({ ...item, id: effectiveId }));
+          updated.push({ ...bodyObj, id: effectiveId });
         }
       }
 
-      setData(updated);
+      setData(updated.map(normalizeItem));
       lastModNrRef.current = updated.map(it => it?.modul?.modulnr?.trim() ?? '');
       idRef.current = updated.map(it => it?.id);
       setStatus('saved');
@@ -463,11 +624,13 @@ export const JsonFormsDemo = () => {
     }
   };
 
+  /** onChange – nur übernehmen, keine Auto-Logik hier */
   const handleChange = ({ data: next, errors }: { data: any; errors?: any[] }) => {
     setData(next as Model);
     setHasErrors((errors?.length ?? 0) > 0);
   };
 
+  /** Auto-Felder bei Modulwechsel */
   useEffect(() => {
     const src: Model = data ?? [];
     let changed = false;
@@ -477,12 +640,16 @@ export const JsonFormsDemo = () => {
       const last  = lastModNrRef.current[idx] ?? '';
       if (!curNr || curNr === last) return item;
 
-      const rawMod = moduByNr.get(curNr) as RawMod | undefined;
+      const rawMod = (modulesJson as RawMod[]).find(m => String(m['Modulnummer']).trim() === curNr);
       const auto   = mapModuleToForm(rawMod);
 
+      // 1) Basisdaten
       let merged = mergeAutoFill(item, auto);
+
+      // 2) Dozierende
       merged = applyLeadersIfNeeded(merged, auto, rawMod);
 
+      // 3) Gruppen nur jetzt setzen
       const prevSuggested = computeGruppenForNextSemester(item.modul);
       const userTouched   = !!item.modul?.gruppen && item.modul!.gruppen!.trim() !== prevSuggested;
       const nextGroups    = userTouched ? item.modul!.gruppen : computeGruppenForNextSemester(merged.modul);
@@ -492,10 +659,14 @@ export const JsonFormsDemo = () => {
       return merged;
     });
 
-    if (changed) setData(patched);
-    lastModNrRef.current = (data ?? []).map(it => it?.modul?.modulnr?.trim() ?? '');
-  }, [data, moduByNr]);
+    if (changed) {
+      setData(patched);
+    }
 
+    lastModNrRef.current = (data ?? []).map(it => it?.modul?.modulnr?.trim() ?? '');
+  }, [data]);
+
+  /** IDs wieder einsetzen, falls JsonForms sie verliert */
   useEffect(() => {
     const src: Model = data ?? [];
     let needPatch = false;
@@ -507,14 +678,21 @@ export const JsonFormsDemo = () => {
       needPatch = true;
       return { ...it, id: remembered };
     });
-    if (needPatch) setData(patched);
-    else idRef.current = src.map(it => it?.id);
+    if (needPatch) {
+      setData(patched);
+    } else {
+      idRef.current = src.map(it => it?.id);
+    }
   }, [data]);
 
   const buildShareUrl = (id: string) => `${window.location.origin}/zuarbeit/${encodeURIComponent(id)}`;
   const copyToClipboard = async (text: string) => {
-    try { await navigator.clipboard.writeText(text); alert('Link kopiert ✅'); }
-    catch { prompt('Zum Kopieren STRG+C drücken und Enter:', text); }
+    try {
+      await navigator.clipboard.writeText(text);
+      alert('Link kopiert ✅');
+    } catch {
+      prompt('Zum Kopieren STRG+C drücken und Enter:', text);
+    }
   };
 
   return (
@@ -550,6 +728,7 @@ export const JsonFormsDemo = () => {
       {status === 'saved'   && <Alert sx={{ mt: 2 }} severity="success">Gespeichert</Alert>}
       {status === 'error'   && <Alert sx={{ mt: 2 }} severity="error">Fehler beim Laden/Speichern</Alert>}
 
+      {/* Share-Links */}
       <Box sx={{ mt: 3 }}>
         <Typography variant="subtitle2" sx={{ mb: 1 }}>Share-Links (nur Einzel-Editor)</Typography>
         {!data?.length && <Typography variant="body2" color="text.secondary">Keine Einträge vorhanden.</Typography>}

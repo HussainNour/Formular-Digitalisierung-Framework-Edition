@@ -10,13 +10,13 @@ const App = () => {
     <BrowserRouter>
       <Header />
       <Routes>
-        {/* Manager-Ansicht: komplette Liste (braucht Token) */}
+        {/* Manager-Ansicht: komplette Liste */}
         <Route path="/" element={<JsonFormsDemo />} />
 
         {/* Manager-Login */}
         <Route path="/login" element={<ManagerLogin />} />
 
-        {/* Share-Link: nur EIN Element per ID, ohne Token */}
+        {/* Share-Link: nur EIN Element per ID (Dozent, ohne Login) */}
         <Route path="/zuarbeit/:id" element={<ZuarbeitEditor />} />
 
         {/* Fallback */}

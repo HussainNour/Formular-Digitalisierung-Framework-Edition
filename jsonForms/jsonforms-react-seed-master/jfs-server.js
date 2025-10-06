@@ -7,7 +7,7 @@ const jwt = require('jsonwebtoken');
 
 const app = express();
 const store = Store('data/Zuarbeit');
-const SECRET = 'geheim123'; // in echtem Projekt in .env auslagern
+const SECRET = 'geheim123'; // in .env auslagern, z.B. process.env.JWT_SECRET
 
 app.use(cors());
 app.use(express.json());
@@ -21,7 +21,7 @@ function requireAuth(req, res, next) {
     req.user = payload;
     next();
   } catch {
-    return res.status(403).json({ error: 'Ungültiger Token' });
+    return res.status(403).json({ error: 'Ungültiger oder abgelaufener Token' });
   }
 }
 
@@ -35,11 +35,12 @@ function allowShareLink(req, res, next) {
   });
 }
 
-// --- Login (nur Manager, Demo) ---
+// --- Login (einfach, nur Demo) ---
 app.post('/login', (req, res) => {
   const { username, password } = req.body || {};
   if (username === 'manager' && password === '1234') {
-    const token = jwt.sign({ role: 'manager', name: 'manager' }, SECRET, { expiresIn: '4h' });
+    // längere Laufzeit gegen „Token ist nach ein paar Stunden abgelaufen“
+    const token = jwt.sign({ role: 'manager', name: 'manager' }, SECRET, { expiresIn: '12h' });
     return res.json({ token });
   }
   return res.status(401).json({ error: 'Login fehlgeschlagen' });
@@ -53,7 +54,7 @@ app.get('/Zuarbeit', requireAuth, (req, res) => {
   });
 });
 
-// --- Einzelnes lesen: Manager ODER Share-Link ohne Token ---
+// --- Einzelnes lesen: Manager ODER Dozent per Share-Link ---
 app.get('/Zuarbeit/:id', (req, res, next) => {
   if (req.headers.authorization?.startsWith('Bearer ')) return requireAuth(req, res, next);
   return allowShareLink(req, res, next);
@@ -65,20 +66,20 @@ app.get('/Zuarbeit/:id', (req, res, next) => {
   });
 });
 
-// --- Einzelnes updaten: Manager ODER Share-Link ohne Token ---
+// --- Einzelnes updaten: Manager ODER Dozent per Share-Link ---
 app.put('/Zuarbeit/:id', (req, res, next) => {
   if (req.headers.authorization?.startsWith('Bearer ')) return requireAuth(req, res, next);
   return allowShareLink(req, res, next);
 }, (req, res) => {
   const id = req.params.id;
-  const obj = { ...req.body, id };
+  const obj = { ...req.body, id }; // ID fixieren
   store.add(obj, (err) => {
     if (err) return res.status(500).json({ error: String(err) });
     res.json(obj);
   });
 });
 
-// --- Anlegen & Löschen: nur Manager ---
+// --- Anlegen/Löschen: nur Manager ---
 app.post('/Zuarbeit', requireAuth, (req, res) => {
   const id = req.body.id || randomUUID();
   const obj = { ...req.body, id };
@@ -87,6 +88,7 @@ app.post('/Zuarbeit', requireAuth, (req, res) => {
     res.status(201).json(obj);
   });
 });
+
 app.delete('/Zuarbeit/:id', requireAuth, (req, res) => {
   store.remove(req.params.id, (err) => {
     if (err) return res.status(500).json({ error: String(err) });

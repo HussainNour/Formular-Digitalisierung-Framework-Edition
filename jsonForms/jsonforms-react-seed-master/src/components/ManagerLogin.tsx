@@ -1,4 +1,5 @@
-import { useState } from 'react';
+// src/components/ManagerLogin.tsx
+import { useEffect, useState } from 'react';
 import { Box, Button, TextField, Alert, Stack, Typography } from '@mui/material';
 import { setToken } from '../auth';
 
@@ -7,7 +8,15 @@ const API = 'http://localhost:5050';
 export default function ManagerLogin() {
   const [username, setU] = useState('manager');
   const [password, setP] = useState('1234');
-  const [status, setStatus] = useState<'idle'|'error'|'ok'>('idle');
+  const [status, setStatus] = useState<'idle'|'error'>('idle');
+  const [info, setInfo] = useState<string>('');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const msg = params.get('msg');
+    if (msg === 'session_expired') setInfo('Deine Sitzung ist abgelaufen. Bitte erneut einloggen.');
+    if (msg === 'auth_required') setInfo('Bitte anmelden, um fortzufahren.');
+  }, []);
 
   const doLogin = async () => {
     setStatus('idle');
@@ -20,7 +29,7 @@ export default function ManagerLogin() {
       if (!res.ok) throw new Error('login');
       const json = await res.json();
       setToken(json.token);
-      setStatus('ok');
+      window.location.href = '/';
     } catch {
       setStatus('error');
     }
@@ -30,10 +39,10 @@ export default function ManagerLogin() {
     <Box sx={{ maxWidth: 360, mx: 'auto', mt: 6, p: 2 }}>
       <Typography variant="h5" sx={{ mb: 2 }}>Manager Login</Typography>
       <Stack spacing={2}>
+        {info && <Alert severity="info">{info}</Alert>}
         <TextField label="Username" value={username} onChange={e=>setU(e.target.value)} />
         <TextField label="Passwort" type="password" value={password} onChange={e=>setP(e.target.value)} />
         <Button variant="contained" onClick={doLogin}>Einloggen</Button>
-        {status==='ok' && <Alert severity="success">Eingeloggt. Zur <a href="/">Übersicht</a>.</Alert>}
         {status==='error' && <Alert severity="error">Login fehlgeschlagen.</Alert>}
       </Stack>
     </Box>
