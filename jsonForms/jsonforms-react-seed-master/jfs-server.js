@@ -6,7 +6,7 @@ const { randomUUID } = require('crypto');
 const jwt = require('jsonwebtoken');
 
 const app = express();
-const store = Store('data/Zuarbeit');
+const store = Store('Digitalisierung-von-Lehrplanungsdokumenten-der-Hochschule/data/Zuarbeit');
 const SECRET = 'geheim123'; // in .env auslagern, z.B. process.env.JWT_SECRET
 
 app.use(cors());
