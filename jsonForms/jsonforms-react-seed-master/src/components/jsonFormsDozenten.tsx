@@ -9,7 +9,14 @@ import schema from '../schema_dozenten.json';
 import uischema from '../uischema_dozenten.json';
 
 import {
-  Box, Button, Alert, Stack, Typography, TextField, Autocomplete, Link
+  Box,
+  Button,
+  Alert,
+  Stack,
+  Typography,
+  TextField,
+  Autocomplete,
+  Link
 } from '@mui/material';
 import { createFilterOptions } from '@mui/material/Autocomplete';
 import { Link as RouterLink } from 'react-router-dom';
@@ -30,6 +37,7 @@ type LV = {
   digital?: string;
   bemerkung?: string;
 };
+
 type Sperr = { wochen?: string; wochentag?: string; uhrzeit?: string; begruendung?: string };
 type Einsatz = { wochen?: string; wochentag?: string; uhrzeit?: string; anmerkung?: string };
 
@@ -186,6 +194,45 @@ const mapModuleToLv = (mod: RawMod) => {
   };
 };
 
+/** Welche LV-Felder sollen automatisch aus dem Modul übernommen werden? */
+const LV_AUTO_KEYS: (keyof LV)[] = [
+  'fakultaet',
+  'studiengang',
+  'fs',
+  'modulname',
+  'swsVorlesung',
+  'swsSeminar',
+  'swsPraktikum'
+];
+
+const mergeLvAutoFill = (oldLv: LV, auto: Partial<LV>): LV => {
+  const next: LV = { ...oldLv };
+  for (const k of LV_AUTO_KEYS) {
+    const v = (auto as any)[k];
+    if (v !== undefined) {
+      (next as any)[k] = v;
+    }
+  }
+  return next;
+};
+
+/** Dozent:innen-Daten aus Modul (Modulverantwortliche) holen */
+type LecturerInfo = { titel?: string; vorname?: string; nachname?: string };
+
+const extractLecturerFromModule = (mod: RawMod): LecturerInfo => {
+  if (!mod) return {};
+  const mv = mod?.Modulverantwortliche || {};
+  const titel = String(mv.Anrede ?? '').trim();
+  const vor = String(mv.Vorname ?? '').trim();
+  const nach = String(mv.Nachname ?? '').trim();
+
+  return {
+    titel: titel || undefined,
+    vorname: vor || undefined,
+    nachname: nach || undefined
+  };
+};
+
 /** ----- Free-Solo Autocomplete für modulnr (auch in Arrays) ----- */
 type FSProps = {
   data: any;
@@ -259,6 +306,16 @@ export const JsonFormsDozenten = () => {
 
   const idRef = useRef<(string | undefined)[]>([]);
   const lvModNrRef = useRef<string[][]>([]); // letzte modulnr pro LV-Zeile (zum Erkennen von Änderungen)
+
+  /** Map Modulnummer -> Modul-Objekt */
+  const moduByNr = useMemo(() => {
+    const m = new Map<string, RawMod>();
+    for (const mod of modulesJson as RawMod[]) {
+      const key = String(mod?.['Modulnummer'] ?? '').trim();
+      if (key) m.set(key, mod);
+    }
+    return m;
+  }, []);
 
   const modulnrOptions = useMemo(
     () =>
@@ -383,47 +440,82 @@ export const JsonFormsDozenten = () => {
 
   /**
    * Auto-Fill pro Lehrveranstaltung, wenn modulnr geändert wurde
-   * und laufende Nummer (nummer als "lfd") automatisch vergeben.
+   * - LV-Felder aus Modul-JSON
+   * - laufende Nummer (lfd / nummer)
+   * - Dozent:innen-Daten (titel, vorname, nachname) aus Modulverantwortliche,
+   *   falls beim Dozenten noch leer
    */
   useEffect(() => {
     const src: Model = data ?? [];
-    let changed = false;
+    let changedAny = false;
 
     const patched: Model = src.map((item, idxItem) => {
       const doz = item?.dozent;
       const arr = doz?.lehrveranstaltung ?? [];
       const lastRow = lvModNrRef.current[idxItem] ?? [];
 
+      let lecturerFromFirstMod: LecturerInfo | null = null;
+      let changedItem = false;
+
       const nextRows: LV[] = arr.map((lv, idxLv) => {
         const curNr = lv?.modulnr?.trim() ?? '';
         const prevNr = lastRow[idxLv] ?? '';
         let nextLv: LV = lv ?? {};
 
-        // Modulwechsel -> Auto-Fill
+        // Modulwechsel -> Auto-Fill für LV + Dozent:innen-Infos merken
         if (curNr && curNr !== prevNr) {
-          const rawMod = (modulesJson as RawMod[]).find(
-            (m) => String(m['Modulnummer']).trim() === curNr
-          );
-          const auto = mapModuleToLv(rawMod);
-          nextLv = { ...nextLv, ...auto };
-          changed = true;
+          const rawMod = moduByNr.get(curNr);
+          if (rawMod) {
+            const auto = mapModuleToLv(rawMod);
+            nextLv = mergeLvAutoFill(nextLv, auto);
+            if (!lecturerFromFirstMod) {
+              lecturerFromFirstMod = extractLecturerFromModule(rawMod);
+            }
+            changedItem = true;
+          }
         }
 
         // laufende Nummer (1,2,3,...) setzen
         const expectedLfd = String(idxLv + 1);
         if (nextLv.nummer !== expectedLfd) {
           nextLv = { ...nextLv, nummer: expectedLfd };
-          changed = true;
+          changedItem = true;
         }
 
         return nextLv;
       });
 
-      if (changed) {
+      // Dozent:innen-Stammdaten nur setzen, wenn noch leer und wir aus irgendeinem Modul was haben
+      let nextDoz = doz ?? {};
+      if (lecturerFromFirstMod) {
+        const maybe = { ...nextDoz };
+        let filled = false;
+
+        if (!maybe.titel && lecturerFromFirstMod.titel) {
+          maybe.titel = lecturerFromFirstMod.titel;
+          filled = true;
+        }
+        if (!maybe.vorname && lecturerFromFirstMod.vorname) {
+          maybe.vorname = lecturerFromFirstMod.vorname;
+          filled = true;
+        }
+        if (!maybe.nachname && lecturerFromFirstMod.nachname) {
+          maybe.nachname = lecturerFromFirstMod.nachname;
+          filled = true;
+        }
+
+        if (filled) {
+          nextDoz = maybe;
+          changedItem = true;
+        }
+      }
+
+      if (changedItem) {
+        changedAny = true;
         return {
           ...item,
           dozent: {
-            ...(doz ?? {}),
+            ...nextDoz,
             lehrveranstaltung: nextRows
           }
         };
@@ -431,11 +523,17 @@ export const JsonFormsDozenten = () => {
       return item;
     });
 
-    if (changed) setData(patched);
-    lvModNrRef.current = (data ?? []).map((it) =>
-      (it?.dozent?.lehrveranstaltung ?? []).map((lv) => lv?.modulnr?.trim() ?? '')
-    );
-  }, [data]);
+    if (changedAny) {
+      setData(patched);
+      lvModNrRef.current = patched.map((it) =>
+        (it?.dozent?.lehrveranstaltung ?? []).map((lv) => lv?.modulnr?.trim() ?? '')
+      );
+    } else {
+      lvModNrRef.current = (data ?? []).map((it) =>
+        (it?.dozent?.lehrveranstaltung ?? []).map((lv) => lv?.modulnr?.trim() ?? '')
+      );
+    }
+  }, [data, moduByNr]);
 
   /** IDs wieder einsetzen, falls JsonForms sie verliert */
   useEffect(() => {

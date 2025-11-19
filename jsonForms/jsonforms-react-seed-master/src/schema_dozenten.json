@@ -13,7 +13,12 @@
           "titel":               { "type": "string", "title": "Titel" },
           "vorname":             { "type": "string", "title": "Vorname" },
           "nachname":            { "type": "string", "title": "Nachname" },
-          "fakultaet":           { "type": "string", "title": "Fakultät" },
+          "fakultaet": {
+                  "type": "string",
+                  "title": "Fak",
+                  "enum": ["FAS", "FB", "FDIT", "FIM", "FING", "FWW", "HSZ", "MNZ", "Gast", "HonProf"],
+                  "default": "FIM"
+                },
 
           "arbeitszeit": {
             "type": "string",
@@ -82,7 +87,8 @@
                 "fakultaet": {
                   "type": "string",
                   "title": "Fak",
-                  "enum": ["FAS", "FB", "FDIT", "FIM", "FING", "FWW", "HSZ", "MNZ", "Gast", "HonProf"]
+                  "enum": ["FAS", "FB", "FDIT", "FIM", "FING", "FWW", "HSZ", "MNZ", "Gast", "HonProf"],
+                  "default": "FIM"
                 },
                 "studiengang":   { "type": "string", "title": "Stg" },
                 "fs":            { "type": "string", "title": "FS" },
