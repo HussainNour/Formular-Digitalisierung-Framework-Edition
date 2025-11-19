@@ -1,23 +1,71 @@
 import './App.css';
+import { BrowserRouter, Routes, Route, Navigate, Link as RouterLink } from 'react-router-dom';
+
 import { Header } from './components/Header';
-import { JsonFormsDemo } from './components/JsonFormsDemo';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ZuarbeitEditor } from './components/ZuarbeitEditor';
 import ManagerLogin from './components/ManagerLogin';
+
+// Zuarbeit
+import { JsonFormsDemo } from './components/JsonFormsDemo';
+import { ZuarbeitEditor } from './components/ZuarbeitEditor';
+
+// Dozenten
+import { JsonFormsDozenten } from './components/jsonFormsDozenten';
+import { DozentenEditor } from './components/DozentenEditor';
+
+// Kleine Übersicht direkt in dieser Datei
+import { Box, Card, CardActionArea, CardContent, Typography, Grid } from '@mui/material';
+
+const Tile = ({ to, title, desc }: { to: string; title: string; desc: string }) => (
+  <Card>
+    <CardActionArea component={RouterLink} to={to}>
+      <CardContent>
+        <Typography variant="h6" gutterBottom>{title}</Typography>
+        <Typography variant="body2" color="text.secondary">{desc}</Typography>
+      </CardContent>
+    </CardActionArea>
+  </Card>
+);
+
+const Overview = () => (
+  <Box sx={{ maxWidth: 1100, mx: 'auto', p: 2 }}>
+    <Typography variant="h5" sx={{ mb: 2 }}>Übersicht</Typography>
+    <Grid container spacing={2}>
+      <Grid item xs={12} md={6}>
+        <Tile
+          to="/zuarbeit"
+          title="Zuarbeit"
+          desc="Komplette Liste & Editor der Zuarbeitsblätter"
+        />
+      </Grid>
+      <Grid item xs={12} md={6}>
+        <Tile
+          to="/dozenten"
+          title="Dozenten"
+          desc="Komplette Liste & Editor der Dozentenblätter"
+        />
+      </Grid>
+    </Grid>
+  </Box>
+);
 
 const App = () => {
   return (
     <BrowserRouter>
       <Header />
       <Routes>
-        {/* Manager-Ansicht: komplette Liste */}
-        <Route path="/" element={<JsonFormsDemo />} />
+        {/* Übersicht */}
+        <Route path="/" element={<Overview />} />
 
-        {/* Manager-Login */}
-        <Route path="/login" element={<ManagerLogin />} />
-
-        {/* Share-Link: nur EIN Element per ID (Dozent, ohne Login) */}
+        {/* Zuarbeit */}
+        <Route path="/zuarbeit" element={<JsonFormsDemo />} />
         <Route path="/zuarbeit/:id" element={<ZuarbeitEditor />} />
+
+        {/* Dozenten */}
+        <Route path="/dozenten" element={<JsonFormsDozenten />} />
+        <Route path="/dozenten/:id" element={<DozentenEditor />} />
+
+        {/* Login */}
+        <Route path="/login" element={<ManagerLogin />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

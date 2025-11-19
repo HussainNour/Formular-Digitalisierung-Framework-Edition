@@ -1,0 +1,113 @@
+{
+  "type": "array",
+  "items": {
+    "type": "object",
+    "title": "Dozentenblatt",
+    "properties": {
+      "id": { "type": "string", "readOnly": true, "title": "ID (intern)" },
+      "dozent": {
+        "type": "object",
+        "title": "Dozent",
+        "required": ["vorname", "nachname"],
+        "properties": {
+          "titel":               { "type": "string", "title": "Titel" },
+          "vorname":             { "type": "string", "title": "Vorname" },
+          "nachname":            { "type": "string", "title": "Nachname" },
+          "fakultaet":           { "type": "string", "title": "Fakultät" },
+
+          "arbeitszeit": {
+            "type": "string",
+            "title": "Arbeitszeit (Vollzeit/Teilzeit)",
+            "enum": ["Vollzeit", "Teilzeit"]
+          },
+          "vollzeitInput": {
+            "type": "string",
+            "title": "Vollzeit-Quote (z. B. 100%)",
+            "readOnly": true,
+            "description": "Wird im Backend automatisch aus der Arbeitszeit berechnet."
+          },
+
+          "email":               { "type": "string", "format": "email", "title": "E-Mail" },
+          "telefon":             { "type": "string", "title": "Telefon" },
+
+          "dozentHinweise":      { "type": "string", "title": "Hinweise (Dozent:in)" },
+          "dekanatHinweise":     { "type": "string", "title": "Hinweise (Dekan:in)" },
+
+          "profUnterschrift":    { "type": "string", "title": "Prof.-Unterschrift (Name)" },
+          "dekanUnterschrift":   { "type": "string", "title": "Dekan:in-Unterschrift (Name)" },
+          "datumUnterschrift":   { "type": "string", "format": "date", "title": "Datum Unterschrift" },
+
+          "dozententag":         { "type": "string", "title": "Dozententag" },
+          "forschungstag":       { "type": "string", "title": "Forschungstag" },
+          "ausnahmeTag":         { "type": "string", "title": "Ausnahme-Tag/Zeit" },
+
+          "sperrzeit": {
+            "type": "array",
+            "title": "Notwendige regelmäßige Sperrzeiten für interne Dozenten sind:",
+            "items": {
+              "type": "object",
+              "properties": {
+                "wochen":      { "type": "string", "title": "Wochen (z. B. 1-15)" },
+                "wochentag":   { "type": "string", "title": "Wochentag" },
+                "uhrzeit":     { "type": "string", "title": "Uhrzeit (z. B. 08:00-10:00)" },
+                "begruendung": { "type": "string", "title": "Begründung" }
+              }
+            }
+          },
+
+          "einsatzzeit": {
+            "type": "array",
+            "title": "Regelmäßig mögliche Einsatzzeiten für externe Dozenten sind:",
+            "items": {
+              "type": "object",
+              "properties": {
+                "wochen":    { "type": "string", "title": "Wochen" },
+                "wochentag": { "type": "string", "title": "Wochentag" },
+                "uhrzeit":   { "type": "string", "title": "Uhrzeit" },
+                "anmerkung": { "type": "string", "title": "Anmerkung" }
+              }
+            }
+          },
+
+          "lehrveranstaltung": {
+            "type": "array",
+            "title": "Lehrveranstaltungen",
+            "items": {
+              "type": "object",
+              "properties": {
+                "nummer": {
+                  "type": "string",
+                  "title": "lfd"
+                },
+                "fakultaet": {
+                  "type": "string",
+                  "title": "Fak",
+                  "enum": ["FAS", "FB", "FDIT", "FIM", "FING", "FWW", "HSZ", "MNZ", "Gast", "HonProf"]
+                },
+                "studiengang":   { "type": "string", "title": "Stg" },
+                "fs":            { "type": "string", "title": "FS" },
+                "gruppen": {
+                  "type": "string",
+                  "title": "Gruppen",
+                  "description": "Eine Gruppe pro Zeile, z. B. 22MIB-1+2 / 22MIB-BIN"
+                },
+                "modulnr":       { "type": "string", "title": "Modul-Nr." },
+                "modulname":     { "type": "string", "title": "Modulname" },
+                "swsVorlesung":  { "type": "string", "title": "V (Reale SWS Präsenz)" },
+                "swsSeminar":    { "type": "string", "title": "S (Reale SWS Präsenz)" },
+                "swsPraktikum":  { "type": "string", "title": "P (Reale SWS Präsenz)" },
+                "digital": {
+                  "type": "string",
+                  "title": "Digital",
+                  "enum": ["Ja", "Nein"]
+                },
+                "bemerkung":     { "type": "string", "title": "Bemerkung" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "required": ["dozent"]
+  }
+}
