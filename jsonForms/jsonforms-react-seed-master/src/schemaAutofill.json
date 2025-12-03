@@ -1,0 +1,72 @@
+{
+  "type": "array",
+  "items": {
+    "type": "object",
+    "title": "Autofill-Modul",
+    "required": ["Modulnummer", "Modulbezeichnung"],
+    "properties": {
+      "Modulnummer": {
+        "type": "string",
+        "title": "Modulnummer"
+      },
+      "Modulbezeichnung": {
+        "type": "string",
+        "title": "Modulbezeichnung"
+      },
+      "Fakultät": {
+        "type": "string",
+        "title": "Fakultät"
+      },
+      "Niveau": {
+        "type": "string",
+        "title": "Niveau"
+      },
+      "Fachsemester": {
+        "type": "string",
+        "title": "Fachsemester"
+      },
+      "Dauer": {
+        "type": "string",
+        "title": "Dauer"
+      },
+      "Turnus": {
+        "type": "string",
+        "title": "Turnus"
+      },
+      "Workload": {
+        "type": "number",
+        "title": "Workload"
+      },
+      "Modultyp": {
+        "type": "string",
+        "title": "Modultyp"
+      },
+      "ZusammenMit": {
+        "type": "array",
+        "title": "Zusammen mit Studiengängen",
+        "items": {
+          "type": "string"
+        }
+      },
+      "Modulverantwortliche": {
+        "type": "object",
+        "title": "Modulverantwortliche(r)",
+        "properties": {
+          "Anrede": { "type": "string", "title": "Anrede" },
+          "Vorname": { "type": "string", "title": "Vorname" },
+          "Nachname": { "type": "string", "title": "Nachname" }
+        }
+      },
+      "Lehrveranstaltungen": {
+        "type": "object",
+        "title": "Lehrveranstaltungen (SWS)",
+        "properties": {
+          "SWS_V": { "type": "number", "title": "SWS Vorlesung" },
+          "SWS_S": { "type": "number", "title": "SWS Seminar" },
+          "SWS_P": { "type": "number", "title": "SWS Praktikum" },
+          "SWS_gesamt": { "type": "number", "title": "SWS gesamt" }
+        }
+      }
+    }
+  }
+}

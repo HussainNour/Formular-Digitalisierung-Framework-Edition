@@ -12,6 +12,10 @@ import { ZuarbeitEditor } from './components/ZuarbeitEditor';
 import { JsonFormsDozenten } from './components/jsonFormsDozenten';
 import { DozentenEditor } from './components/DozentenEditor';
 
+// Autofill-Module
+import { AutofillManager } from './components/AutofillManager';
+
+
 // Kleine Übersicht direkt in dieser Datei
 import { Box, Card, CardActionArea, CardContent, Typography, Grid } from '@mui/material';
 
@@ -19,8 +23,12 @@ const Tile = ({ to, title, desc }: { to: string; title: string; desc: string }) 
   <Card>
     <CardActionArea component={RouterLink} to={to}>
       <CardContent>
-        <Typography variant="h6" gutterBottom>{title}</Typography>
-        <Typography variant="body2" color="text.secondary">{desc}</Typography>
+        <Typography variant="h6" gutterBottom>
+          {title}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {desc}
+        </Typography>
       </CardContent>
     </CardActionArea>
   </Card>
@@ -28,7 +36,9 @@ const Tile = ({ to, title, desc }: { to: string; title: string; desc: string }) 
 
 const Overview = () => (
   <Box sx={{ maxWidth: 1100, mx: 'auto', p: 2 }}>
-    <Typography variant="h5" sx={{ mb: 2 }}>Übersicht</Typography>
+    <Typography variant="h5" sx={{ mb: 2 }}>
+      Übersicht
+    </Typography>
     <Grid container spacing={2}>
       <Grid item xs={12} md={6}>
         <Tile
@@ -42,6 +52,15 @@ const Overview = () => (
           to="/dozenten"
           title="Dozenten"
           desc="Komplette Liste & Editor der Dozentenblätter"
+        />
+      </Grid>
+
+      {/* NEU: Autofill-Module */}
+      <Grid item xs={12} md={6}>
+        <Tile
+          to="/autofill"
+          title="Autofill-Module"
+          desc="Modulliste für automatische Vorbelegung bearbeiten"
         />
       </Grid>
     </Grid>
@@ -63,6 +82,9 @@ const App = () => {
         {/* Dozenten */}
         <Route path="/dozenten" element={<JsonFormsDozenten />} />
         <Route path="/dozenten/:id" element={<DozentenEditor />} />
+
+        {/* NEU: Autofill-Module */}
+        <Route path="/autofill" element={<AutofillManager />} />
 
         {/* Login */}
         <Route path="/login" element={<ManagerLogin />} />

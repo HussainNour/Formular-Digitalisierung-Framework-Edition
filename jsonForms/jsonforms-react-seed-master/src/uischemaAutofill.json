@@ -1,0 +1,64 @@
+{
+  "type": "Control",
+  "label": "Autofill-Module",
+  "scope": "#",
+  "options": {
+    "elementLabelProp": "Modulnummer",
+    "detail": {
+      "type": "VerticalLayout",
+      "elements": [
+        {
+          "type": "Group",
+          "label": "Stammdaten",
+          "elements": [
+            {
+              "type": "HorizontalLayout",
+              "elements": [
+                { "type": "Control", "scope": "#/properties/Modulnummer" },
+                { "type": "Control", "scope": "#/properties/Modulbezeichnung" }
+              ]
+            },
+            {
+              "type": "HorizontalLayout",
+              "elements": [
+                { "type": "Control", "scope": "#/properties/Fakultät" },
+                { "type": "Control", "scope": "#/properties/Niveau" },
+                { "type": "Control", "scope": "#/properties/Fachsemester" }
+              ]
+            },
+            {
+              "type": "HorizontalLayout",
+              "elements": [
+                { "type": "Control", "scope": "#/properties/Dauer" },
+                { "type": "Control", "scope": "#/properties/Turnus" },
+                { "type": "Control", "scope": "#/properties/Modultyp" }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Group",
+          "label": "Workload & Verantwortliche",
+          "elements": [
+            { "type": "Control", "scope": "#/properties/Workload" },
+            { "type": "Control", "scope": "#/properties/Modulverantwortliche" }
+          ]
+        },
+        {
+          "type": "Group",
+          "label": "Lehrveranstaltungen (SWS)",
+          "elements": [
+            { "type": "Control", "scope": "#/properties/Lehrveranstaltungen" }
+          ]
+        },
+        {
+          "type": "Group",
+          "label": "Studiengänge",
+          "elements": [
+            { "type": "Control", "scope": "#/properties/ZusammenMit" }
+          ]
+        }
+      ]
+    }
+  }
+}
