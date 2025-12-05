@@ -216,6 +216,30 @@ const mergeLvAutoFill = (oldLv: LV, auto: Partial<LV>): LV => {
   return next;
 };
 
+/** ---------- Programme/Gruppen (wie im ersten Code, aber für LV) ---------- */
+const extractProgramsFromLv = (lv?: LV): string[] => {
+  const s = (lv?.studiengang ?? '').toUpperCase();
+  const set = new Set<string>();
+  if (/\bINB\b/.test(s)) set.add('INB');
+  if (/\bMIB\b/.test(s)) set.add('MIB');
+  return set.size ? Array.from(set) : ['INB', 'MIB'];
+};
+
+const computeGruppenForNextSemester = (lv?: LV): string => {
+  const sem = nextSemester(computeSemesterFromDate());
+  const programs = extractProgramsFromLv(lv);
+  const cohorts: number[] =
+    sem.kind === 'WiSe'
+      ? [sem.year + 1, sem.year, sem.year - 1]
+      : [sem.year, sem.year - 1];
+
+  const parts: string[] = [];
+  for (const prog of programs) {
+    for (const c of cohorts) parts.push(`${prog}${yy(c)}`);
+  }
+  return parts.join(' + ');
+};
+
 /** Dozent:innen-Daten aus Modul (Modulverantwortliche) holen */
 type LecturerInfo = { titel?: string; vorname?: string; nachname?: string };
 
@@ -442,6 +466,7 @@ export const JsonFormsDozenten = () => {
    * Auto-Fill pro Lehrveranstaltung, wenn modulnr geändert wurde
    * - LV-Felder aus Modul-JSON
    * - laufende Nummer (lfd / nummer)
+   * - Gruppen: nur EINMAL beim ersten Setzen der Modulnummer, danach frei editierbar
    * - Dozent:innen-Daten (titel, vorname, nachname) aus Modulverantwortliche,
    *   falls beim Dozenten noch leer
    */
@@ -471,6 +496,18 @@ export const JsonFormsDozenten = () => {
             if (!lecturerFromFirstMod) {
               lecturerFromFirstMod = extractLecturerFromModule(rawMod);
             }
+            changedItem = true;
+          }
+        }
+
+        // Gruppen nur EINMAL berechnen:
+        // wenn vorher keine Modulnummer (prevNr leer) und jetzt eine gesetzt wurde (curNr)
+        // UND das Gruppenfeld noch leer ist -> Vorschlag eintragen
+        const gruppenEmpty = !lv?.gruppen || lv.gruppen.trim() === '';
+        if (!prevNr && curNr && gruppenEmpty) {
+          const suggested = computeGruppenForNextSemester(nextLv);
+          if (suggested && suggested !== nextLv.gruppen) {
+            nextLv = { ...nextLv, gruppen: suggested };
             changedItem = true;
           }
         }
