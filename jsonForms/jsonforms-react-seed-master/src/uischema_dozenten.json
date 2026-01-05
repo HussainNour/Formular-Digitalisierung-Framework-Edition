@@ -1,0 +1,139 @@
+{
+  "type": "Control",
+  "label": "Dozenten",
+  "scope": "#",
+  "options": {
+    "elementLabelProp": "dozent.nachname",
+    "detail": {
+      "type": "VerticalLayout",
+      "elements": [
+        {
+          "type": "Group",
+          "label": "Stammdaten",
+          "elements": [
+            {
+              "type": "HorizontalLayout",
+              "elements": [
+                { "type": "Control", "scope": "#/properties/dozent/properties/titel" },
+                { "type": "Control", "scope": "#/properties/dozent/properties/vorname" },
+                { "type": "Control", "scope": "#/properties/dozent/properties/nachname" },
+                { "type": "Control", "scope": "#/properties/dozent/properties/fakultaet" }
+              ]
+            },
+            {
+              "type": "HorizontalLayout",
+              "elements": [
+                { "type": "Control", "scope": "#/properties/dozent/properties/arbeitszeit" }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Group",
+          "label": "Kontakt",
+          "elements": [
+            {
+              "type": "HorizontalLayout",
+              "elements": [
+                { "type": "Control", "scope": "#/properties/dozent/properties/email" },
+                { "type": "Control", "scope": "#/properties/dozent/properties/telefon" }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Group",
+          "label": "Lehrveranstaltungen",
+          "elements": [
+            {
+              "type": "Control",
+              "scope": "#/properties/dozent/properties/lehrveranstaltung",
+              "options": {
+                "elementLabelProp": "modulnr",
+                "detail": {
+                  "type": "VerticalLayout",
+                  "elements": [
+                    {
+                      "type": "HorizontalLayout",
+                      "elements": [
+                        { "type": "Control", "scope": "#/properties/nummer" },
+                        { "type": "Control", "scope": "#/properties/fakultaet" },
+                        { "type": "Control", "scope": "#/properties/studiengang" }
+                      ]
+                    },
+                    {
+                      "type": "HorizontalLayout",
+                      "elements": [
+                        { "type": "Control", "scope": "#/properties/gruppen" },
+                        { "type": "Control", "scope": "#/properties/modulnr" },
+                        { "type": "Control", "scope": "#/properties/modulname" }
+                      ]
+                    },
+                    {
+                      "type": "Group",
+                      "label": "Reale SWS (Präsenz)",
+                      "elements": [
+                        {
+                          "type": "HorizontalLayout",
+                          "elements": [
+                            { "type": "Control", "scope": "#/properties/swsVorlesung" },
+                            { "type": "Control", "scope": "#/properties/swsSeminar" },
+                            { "type": "Control", "scope": "#/properties/swsPraktikum" }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "HorizontalLayout",
+                      "elements": [
+                        { "type": "Control", "scope": "#/properties/digital" },
+                        { "type": "Control", "scope": "#/properties/bemerkung" }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "Group",
+          "label": "Hinweise (Wichtige Hinweise zur Semesterplanung: Keine Sperrzeiten!!!)",
+          "elements": [
+            { "type": "Control", "scope": "#/properties/dozent/properties/dozentHinweise" }
+          ]
+        },
+        {
+          "type": "Group",
+          "label": "Verfügbarkeit",
+          "elements": [
+            {
+              "type": "HorizontalLayout",
+              "elements": [
+                { "type": "Control", "scope": "#/properties/dozent/properties/dozententag" },
+                { "type": "Control", "scope": "#/properties/dozent/properties/forschungstag" },
+                { "type": "Control", "scope": "#/properties/dozent/properties/ausnahmeTag" }
+              ]
+            },
+            { "type": "Control", "scope": "#/properties/dozent/properties/sperrzeit" },
+            { "type": "Control", "scope": "#/properties/dozent/properties/einsatzzeit" }
+          ]
+        },
+        {
+          "type": "Group",
+          "label": "Unterschriften",
+          "elements": [
+            {
+              "type": "HorizontalLayout",
+              "elements": [
+                { "type": "Control", "scope": "#/properties/dozent/properties/profUnterschrift" },
+                { "type": "Control", "scope": "#/properties/dozent/properties/dekanUnterschrift" },
+                { "type": "Control", "scope": "#/properties/dozent/properties/datumUnterschrift" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

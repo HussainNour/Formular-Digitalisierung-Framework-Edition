@@ -1,0 +1,91 @@
+{
+  "type": "array",
+  "items": {
+    "type": "object",
+    "title": "Zuarbeitsblatt",
+    "properties": {
+      "id": { "type": "string", "readOnly": true, "title": "ID (intern)" },
+      "modul": {
+        "type": "object",
+        "title": "Modul",
+        "required": ["fakultaet", "studiengang", "fs", "modulnr", "modulname"],
+        "properties": {
+          "fakultaet":        { "type": "string", "title": "Fakultät" },
+          "studiengang":      { "type": "string", "title": "Studiengang" },
+          "fs":               { "type": "string", "title": "Fachsemester (FS)" },
+          "gruppen":          { "type": "string", "title": "Gruppen (z. B. 13 BIB 1 - 5)" },
+
+          "modulnr":          { "type": "string", "title": "Modul-Nr." },
+          "modulname":        { "type": "string", "title": "Modulname" },
+          "lehrveranstaltung":{ "type": "string", "title": "Lehrveranstaltung/Teilmodul" },
+
+          "swsVorlesung":     { "type": "string", "title": "SWS Vorlesung" },
+          "swsSeminar":       { "type": "string", "title": "SWS Seminar" },
+          "swsPraktikum":     { "type": "string", "title": "SWS Praktikum" },
+
+          "raumV":            { "type": "string", "title": "Raum Vorlesung" },
+          "raumS":            { "type": "string", "title": "Raum Seminar" },
+          "raumP":            { "type": "string", "title": "Raum Praktikum" },
+
+          "technikV":         { "type": "string", "title": "Technik Vorlesung" },
+          "technikS":         { "type": "string", "title": "Technik Seminar" },
+          "technikP":         { "type": "string", "title": "Technik Praktikum" },
+
+          "planungshinweise": { "type": "string", "title": "Planungshinweise" },
+          "kwHinweise":       { "type": "string", "title": "KW-Hinweise (z. B. KW42, KW43,…)" },
+
+          "name":             { "type": "string", "title": "Name (Ersteller:in)" },
+          "unterschrift":     { "type": "string", "title": "Unterschrift (Name)" },
+          "rueckgabedatum":   { "type": "string", "format": "date", "title": "Rückgabedatum" },
+
+          "profUnterschrift": { "type": "string", "title": "Prof.-Unterschrift (Name)" },
+          "dekanUnterschrift":{ "type": "string", "title": "Dekan:in-Unterschrift (Name)" },
+          "datumUnterschrift":{ "type": "string", "format": "date", "title": "Datum Unterschrift" },
+
+          "lesende": {
+            "type": "array",
+            "title": "Lesende",
+            "items": {
+              "type": "object",
+              "properties": {
+                "titel":       { "type": "string", "title": "Titel" },
+                "name":        { "type": "string", "title": "Name" },
+                "gruppen":     { "type": "string", "title": "Gruppen" },
+                "erlaeuterung":{ "type": "string", "title": "Erläuterung" }
+              }
+            }
+          },
+
+          "seminarleiter": {
+            "type": "array",
+            "title": "Seminarleiter",
+            "items": {
+              "type": "object",
+              "properties": {
+                "titel":       { "type": "string", "title": "Titel" },
+                "name":        { "type": "string", "title": "Name" },
+                "gruppen":     { "type": "string", "title": "Gruppen" },
+                "erlaeuterung":{ "type": "string", "title": "Erläuterung" }
+              }
+            }
+          },
+
+          "praktikumsleiter": {
+            "type": "array",
+            "title": "Praktikumsleiter",
+            "items": {
+              "type": "object",
+              "properties": {
+                "titel":       { "type": "string", "title": "Titel" },
+                "name":        { "type": "string", "title": "Name" },
+                "gruppen":     { "type": "string", "title": "Gruppen" },
+                "erlaeuterung":{ "type": "string", "title": "Erläuterung" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "required": ["modul"]
+  }
+}

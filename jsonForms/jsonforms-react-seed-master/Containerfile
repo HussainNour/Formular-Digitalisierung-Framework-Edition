@@ -1,0 +1,20 @@
+FROM node:20
+
+# Arbeitsverzeichnis im Container
+WORKDIR /app
+
+# package.json und package-lock.json kopieren
+COPY package*.json ./
+
+
+# Alle Dependencies inkl. devDependencies installieren
+RUN npm install --include=dev
+
+# Restlichen Code kopieren
+COPY . .
+
+# Ports für Frontend & Backend
+EXPOSE 3000 5050
+
+# Standard-Command: Frontend Dev-Server
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
