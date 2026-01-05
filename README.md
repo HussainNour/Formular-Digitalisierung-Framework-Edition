@@ -1,15 +1,21 @@
-# JSON Forms + json-server (Personenliste mit stabilem Speichern)
 
-## Vorschau
-![frontendJsonForms](/jsonForms/Bilder/frontendJsonForms.png)
-![backend1](/jsonForms/Bilder/backend1.png)
-![backend2](/jsonForms/Bilder/backend2.png)
 
 # JSONForms Manager (Zuarbeit & Dozenten) – Frontend + File-API
 
 Eine React-basierte Webanwendung zur strukturierten Pflege von Lehrplanungs-/Lehrveranstaltungsdaten. Die UI nutzt **JSON Forms (Material Renderers)**, um Datenmodelle als Formular- und Listenansichten darzustellen. Persistenz erfolgt über eine **Node/Express File-API**, die JSON-Dokumente im Dateisystem speichert.
 
 ---
+## Vorschau
+![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b1.png)
+![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b2.png)
+![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b3.png)
+![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b4.png)
+![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b5.png)
+![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b6.png)
+![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b7.png)
+![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b8.png)
+![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b9.png)
+
 
 ## Überblick
 
