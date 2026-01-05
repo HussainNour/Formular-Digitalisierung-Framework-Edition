@@ -1,17 +1,38 @@
 // server/jfs-server.js
+
 const express = require('express');
 const cors = require('cors');
 const Store = require('json-fs-store');
 const { randomUUID } = require('crypto');
 const jwt = require('jsonwebtoken');
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
 
-// 🔹 getrennte Stores: Zuarbeit & Dozenten
-const storeZuarbeit = Store('Digitalisierung-von-Lehrplanungsdokumenten-der-Hochschule/data/Zuarbeit');
-const storeDozenten = Store('Digitalisierung-von-Lehrplanungsdokumenten-der-Hochschule/data/Dozenten');
+/**
+ * Datenverzeichnis:
+ * - Standard: <projekt>/data  (relativ zu diesem File: server/../data)
+ * - Im Container/Prod: per ENV überschreibbar, z.B. DATA_ROOT=/app/data
+ */
+const DATA_ROOT = process.env.DATA_ROOT || path.join(__dirname, '..', 'data');
+const ZUARBEIT_DIR = path.join(DATA_ROOT, 'Zuarbeit');
+const DOZENTEN_DIR = path.join(DATA_ROOT, 'Dozenten');
 
-const SECRET = 'geheim123'; // in .env auslagern, z.B. process.env.JWT_SECRET
+// Verzeichnisse sicher anlegen
+try {
+  fs.mkdirSync(ZUARBEIT_DIR, { recursive: true });
+  fs.mkdirSync(DOZENTEN_DIR, { recursive: true });
+} catch (e) {
+  console.error('[FATAL] Konnte Datenverzeichnisse nicht anlegen:', e);
+  process.exit(1);
+}
+
+// 🔹 getrennte Stores: Zuarbeit & Dozenten
+const storeZuarbeit = Store(ZUARBEIT_DIR);
+const storeDozenten = Store(DOZENTEN_DIR);
+
+const SECRET = process.env.JWT_SECRET || 'geheim123'; // besser in .env auslagern
 
 app.use(cors());
 app.use(express.json());
@@ -53,7 +74,6 @@ function allowShareLinkDoz(req, res, next) {
 app.post('/login', (req, res) => {
   const { username, password } = req.body || {};
   if (username === 'manager' && password === '1234') {
-    // längere Laufzeit gegen „Token ist nach ein paar Stunden abgelaufen“
     const token = jwt.sign({ role: 'manager', name: 'manager' }, SECRET, { expiresIn: '12h' });
     return res.json({ token });
   }
@@ -168,5 +188,26 @@ app.delete('/Dozenten/:id', requireAuth, (req, res) => {
   });
 });
 
+// --- Diagnostics: zeigt, wohin geschrieben wird (hilft beim Container-Debug) ---
+app.get('/__health', (req, res) => {
+  res.json({
+    ok: true,
+    dataRoot: DATA_ROOT,
+    zuarbeitDir: ZUARBEIT_DIR,
+    dozentenDir: DOZENTEN_DIR,
+    cwd: process.cwd(),
+  });
+});
+
+// --- Global Error Handler (hilft bei "ERR_EMPTY_RESPONSE") ---
+app.use((err, req, res, next) => {
+  console.error('[UNHANDLED ERROR]', err);
+  res.status(500).json({ error: 'Internal Server Error', detail: String(err) });
+});
+
 const PORT = 5050;
-app.listen(PORT, () => console.log('🚀 File-API mit Rollen läuft: http://localhost:' + PORT));
+// Explizit an 0.0.0.0 binden (Container/Port-Mapping)
+app.listen(PORT, '0.0.0.0', () => {
+  console.log('🚀 File-API mit Rollen läuft auf 0.0.0.0:' + PORT);
+  console.log('   Health: http://localhost:' + PORT + '/__health');
+});
