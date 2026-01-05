@@ -5,220 +5,251 @@
 ![backend1](/jsonForms/Bilder/backend1.png)
 ![backend2](/jsonForms/Bilder/backend2.png)
 
-Dieses Projekt demonstriert, wie man mit **JSON Forms (React)** und **json-server** eine **Personenliste** als Formular baut.
-Die Daten werden über eine REST-API (`/persons`) geladen und beim **Klick auf „Speichern“** per **diff-basierter Synchronisation** zurückgeschrieben:
+# JSONForms Manager (Zuarbeit & Dozenten) – Frontend + File-API
 
-* **Neue** Personen → `POST /persons` (Server vergibt ID)
-* **Geänderte** Personen → `PATCH /persons/:id`
-* **Gelöschte** Personen → `DELETE /persons/:id`
-* **Reihenfolge** bleibt erhalten via Feld `order` (wird automatisch gepflegt)
+Eine React-basierte Webanwendung zur strukturierten Pflege von Lehrplanungs-/Lehrveranstaltungsdaten. Die UI nutzt **JSON Forms (Material Renderers)**, um Datenmodelle als Formular- und Listenansichten darzustellen. Persistenz erfolgt über eine **Node/Express File-API**, die JSON-Dokumente im Dateisystem speichert.
 
-Die **IDs bleiben stabil**, sind im **UI nicht sichtbar**, aber in `db.json` vorhanden (json-server nutzt sie intern).
+---
+
+## Überblick
+
+### Hauptmodule
+
+* **Zuarbeit**
+
+  * Array-/Listenansicht (JSONForms)
+  * Einzel-Editor pro Datensatz (ID-basiert)
+* **Dozenten**
+
+  * Array-/Listenansicht (JSONForms)
+  * Einzel-Editor pro Datensatz (ID-basiert)
+* **Autofill-Module**
+
+  * Bearbeitung einer Modul-JSON im Browser
+  * Export als JSON-Datei (Download)
+* **Login**
+
+  * Token-basierte Requests im Frontend
 
 ---
 
 ## Features
 
-* JSON-Schema-basiertes Formular mit **Hinzufügen / Löschen / Sortieren**
-* **Validierung** (Vorname & Nachname Pflicht; Alter optional)
-* **Diff-basiertes Speichern**: nur echte Änderungen werden geschrieben
-* **Stabile IDs** (keine Neuvergabe bei jedem Speichern)
-* **Kein Backend-Code** nötig – nur `json-server`
+### Zuarbeit
+
+* **Array-Seite** (Route: `/zuarbeit`) lädt/speichert die gesamte Liste über die API `.../Zuarbeit`. 
+* **Einzel-Editor** (Route: `/zuarbeit/:id`) lädt einen Datensatz per ID und speichert per `PUT`. 
+
+### Dozenten
+
+* **Array-Seite** (Route: `/dozenten`) lädt/speichert über die API `.../Dozenten`. 
+* **Einzel-Editor: `DozentenEditor`** (Route: `/dozenten/:id`) lädt/speichert einen Datensatz per ID. 
+* Share-Links werden aus `window.location.origin` erzeugt und verweisen auf den jeweiligen Einzel-Editor. 
+
+### Autofill-Module
+
+* Route: `/autofill`. 
+* Änderungen erfolgen browserseitig; Export als `INB_module.json` per Download. 
+
+---
+
+## Routen
+
+Die Routen sind in `App.tsx` definiert: 
+
+* `/` – Start/Übersicht
+* `/zuarbeit` – Zuarbeit (Array)
+* `/zuarbeit/:id` – Zuarbeit Einzel-Editor (`ZuarbeitEditor`)
+* `/dozenten` – Dozenten (Array)
+* `/dozenten/:id` – Dozenten Einzel-Editor (`DozentenEditor`)
+* `/autofill` – Autofill-Module
+* `/login` – Login
+
+---
+
+## API-Konzept
+
+Standardmäßig erwartet das Frontend die File-API unter:
+
+* `http://localhost:5050/Zuarbeit` 
+* `http://localhost:5050/Dozenten` 
+
+Empfohlene Endpunkte (CRUD):
+
+* `GET /Zuarbeit`, `POST /Zuarbeit`, `PUT /Zuarbeit/:id`, `DELETE /Zuarbeit/:id`
+* `GET /Dozenten`, `POST /Dozenten`, `PUT /Dozenten/:id`, `DELETE /Dozenten/:id`
+* optional: `POST /login` (Token)
+
+**Hinweis Auth (Frontend):**
+API-Requests werden (wo implementiert) tokenbasiert über `fetchAuth(...)` ausgeführt; bei abgelaufenen/ungültigen Tokens erfolgt Redirect zum Login. 
+
+---
+
+## Projektstruktur (Auszug)
+
+Frontend:
+
+* `App.tsx` – Routing & Navigation 
+* `JsonFormsDemo.tsx` – Zuarbeit Array 
+* `ZuarbeitEditor.tsx` – Zuarbeit Einzel-Editor 
+* `jsonFormsDozenten.tsx` – Dozenten Array 
+* `DozentenEditor.tsx` – Dozenten Einzel-Editor 
+* `AutofillManager.tsx` – Autofill-Module & Export 
+
+Backend:
+
+* `jfs-server.js` – Node/Express File-API (Entry im Projekt-Root)
 
 ---
 
 ## Voraussetzungen
 
-* Node.js (LTS)
+* Node.js (empfohlen: **20.x**)
 * npm
-* Klon des Starters: [`eclipsesource/jsonforms-react-seed`](https://github.com/eclipsesource/jsonforms-react-seed)
+* Optional: Container Runtime (Podman oder Docker) für Containerbetrieb
 
 ---
 
-## Installation
+## Setup & Entwicklung
+
+### Installation
 
 ```bash
-# Projekt klonen
-git clone https://github.com/eclipsesource/jsonforms-react-seed.git
-cd jsonforms-react-seed
-
-# Abhängigkeiten installieren
 npm install
-
-# json-server als Dev-Dependency
-npm i -D json-server
 ```
 
-### Skripte ergänzen (`package.json`)
-
-```json
-{
-  "scripts": {
-    "dev": "vite",
-    "api": "json-server --watch db.json --port 5050"
-  }
-}
-```
-
-### Datenbasis anlegen (`db.json` im Projekt-Root)
-
-```json
-{
-  "persons": []
-}
-```
-
----
-
-## Starten
-
-In **zwei Terminals**:
+### Frontend starten
 
 ```bash
-# Abhängigkeiten installieren mit:
-npm ci
-
-
-# API (http://localhost:5050)
-npm run api
+npm run dev -- --host 0.0.0.0 --port 3000
 ```
+
+### Backend starten
 
 ```bash
-# Frontend (z. B. http://localhost:5173)
-npm run dev
+node jfs-server.js
 ```
 
-Öffne die Frontend-URL, füge Personen hinzu, bearbeite, sortiere – und klicke **Speichern**.
+oder für Development mit Auto-Restart:
+
+```bash
+npx nodemon jfs-server.js
+```
+
+Standard-URLs:
+
+* Frontend: `http://localhost:3000`
+* Backend: `http://localhost:5050`
 
 ---
 
-## Wichtige Dateien
+## Containerbetrieb
 
-### `src/schema.json`  *(Formdatenmodell)*
+### Persistenz & Schreibrechte (wichtig)
 
-```json
-{
-  "type": "object",
-  "properties": {
-    "persons": {
-      "type": "array",
-      "title": "Personen",
-      "items": {
-        "type": "object",
-        "properties": {
-          "id":        { "type": "integer", "readOnly": true },
-          "order":     { "type": "integer", "readOnly": true },
-          "salutation":{ "type": "string",  "title": "Anrede",   "enum": ["Herr","Frau","Divers"] },
-          "firstName": { "type": "string",  "title": "Vorname",  "minLength": 1 },
-          "lastName":  { "type": "string",  "title": "Nachname", "minLength": 1 },
-          "age":       { "type": ["integer","null"], "title": "Alter", "minimum": 0, "default": null }
-        },
-        "required": ["firstName","lastName"]
-      }
-    }
-  }
-}
+Da die File-API JSON-Dokumente im Dateisystem speichert, muss das Backend in ein Verzeichnis schreiben, das:
+
+1. existiert,
+2. beschreibbar ist,
+3. als Volume gemountet wird (Persistenz).
+
+Empfehlung:
+
+* Datenpfad im Container: `/app/data`
+* Übergabe per Umgebungsvariable: `DATA_ROOT=/app/data`
+* Volume-Mount: Host-Ordner → `/app/data`
+
+### Beispiel (generisch)
+
+```bash
+# Image bauen (Dockerfile oder Containerfile)
+podman build -t my-node-react -f Containerfile .
+
+# Datenordner vorbereiten
+mkdir -p ./data/Zuarbeit ./data/Dozenten
+
+# Backend starten (Volume + DATA_ROOT)
+podman run --name my-backend -p 5050:5050 \
+  -e DATA_ROOT=/app/data \
+  -v "$(pwd)/data:/app/data" \
+  my-node-react npx nodemon jfs-server.js
+
+# Frontend starten
+podman run --name my-frontend -p 3000:3000 \
+  my-node-react npm run dev -- --host 0.0.0.0 --port 3000
 ```
 
-> `id` und `order` sind **readOnly** (werden nicht editiert), bleiben aber im Modell erhalten, damit die Synchronisation zuverlässig ist.
-
-### `src/uischema.json`  *(UI-Layout)*
-
-```json
-{
-  "type": "VerticalLayout",
-  "elements": [
-    {
-      "type": "Control",
-      "scope": "#/properties/persons",
-      "options": {
-        "showSortButtons": true,
-        "elementLabelProp": "lastName",
-        "detail": {
-          "type": "VerticalLayout",
-          "elements": [
-            { "type": "Control", "label": "Anrede",   "scope": "#/properties/salutation" },
-            { "type": "Control", "label": "Vorname",  "scope": "#/properties/firstName" },
-            { "type": "Control", "label": "Nachname", "scope": "#/properties/lastName" },
-            { "type": "Control", "label": "Alter",    "scope": "#/properties/age" }
-          ]
-        }
-      }
-    }
-  ]
-}
-```
-
-> ID/Order **werden nicht gerendert**, die Listen-Vorschau nutzt den Nachnamen als Label.
-
-### `src/components/JsonFormsDemo.tsx`  *(Logik: Laden & diff-basiert speichern)*
-
-* Lädt mit `GET /persons`
-* Schreibt beim Speichern:
-
-  * **POST** für neue Einträge (ohne `id`)
-  * **PATCH** für geänderte (mit `id`)
-  * **DELETE** für gelöschte
-* Pflegt `order` automatisch (Index in der Liste)
-* Normalisiert `age` (leere Eingabe → `null`, `"12"` → `12`), damit Validierung nicht blockiert
-
-> Nutze die vollständige Komponente aus unserer letzten Antwort („**stabile IDs, im UI verborgen**“).
-> Falls du sie noch nicht eingefügt hast, sag Bescheid – ich paste sie dir hier komplett rein.
-
----
-
-## API-Endpunkte (json-server)
-
-* `GET    /persons`
-* `POST   /persons`
-* `PATCH  /persons/:id`
-* `DELETE /persons/:id`
-
-**Beispiel** nach ein paar Speichervorgängen (IDs vom Server vergeben, bleiben stabil):
-
-```json
-{
-  "persons": [
-    { "id": 1, "order": 0, "salutation": "Herr",  "firstName": "Max",   "lastName": "Mustermann", "age": 30 },
-    { "id": 2, "order": 1, "salutation": "Frau",  "firstName": "Erika", "lastName": "Muster",      "age": null }
-  ]
-}
-```
+> Damit `DATA_ROOT` wirksam ist, muss das Backend diesen Wert auch verwenden (Store-Pfade daraus ableiten und Verzeichnisse beim Start anlegen).
 
 ---
 
 ## Troubleshooting
 
-* **Speichern-Button ist deaktiviert (grau):**
-  Mindestens ein Eintrag hat einen **Validierungsfehler**. `firstName` und `lastName` sind **Pflicht**.
-  Das Feld `age` darf leer sein (wir erlauben `null` im Schema und normalisieren im Code).
+### `net::ERR_EMPTY_RESPONSE` / `TypeError: Failed to fetch` bei PUT/POST
 
-* **Es speichert nur den ersten Eintrag:**
-  In älteren Versionen lag das oft am `age`-Typ (leerer String ≠ Integer). Mit der Normalisierung & `type: ["integer","null"]` ist das behoben.
+In der Regel antwortet das Backend nicht korrekt (Crash/Restart) oder scheitert beim Schreiben ins Dateisystem.
 
-* **Nichts kommt beim Server an:**
-  Prüfe, ob `npm run api` auf **Port 5050** läuft und die Komponente wirklich `http://localhost:5050/persons` verwendet (kein Port-Mix).
+Prüfen:
 
-* **Sortierung geht verloren:**
-  Stelle sicher, dass beim Speichern `order` aus dem Listen-Index gesetzt wird (ist in der Komponente enthalten).
+* Backend-Logs:
 
----
-
-## Alternative: Ganz ohne IDs in den Personen
-
-Wenn du **gar keine IDs** im Personen-Array sehen willst (auch nicht in `db.json`), nutze statt `/persons` die Variante **„ein Dokument“**:
-
-* `db.json`:
-
-  ```json
-  { "doc": [ { "id": 1, "persons": [] } ] }
+  ```bash
+  podman logs --tail 200 my-backend
   ```
-* Laden/Speichern über **`GET/PUT /doc/1`** (ein Request, komplette Liste).
-* Dafür gibt es in der vorherigen Antwort eine fertige Komponente.
+* Schreibtest im Container:
+
+  ```bash
+  podman exec -it my-backend sh -lc "mkdir -p /app/data/test && echo ok >/app/data/test/a.txt && cat /app/data/test/a.txt"
+  ```
+
+### Änderungen erscheinen im Container nicht
+
+Ohne Source-Mount enthält das Image nur den Stand vom Build. Lösung:
+
+* Image neu bauen, oder
+* Quellcode als Volume mounten (Dev-Workflow).
+
+### Einzel-Editor „nicht gefunden“
+
+Einzel-Editoren versuchen zuerst `GET /…/:id` und nutzen sonst `GET /…` als Fallback (Liste laden und nach `id` suchen).
+Prüfen:
+
+* existiert der Datensatz in der Liste?
+* ist `id` gesetzt und korrekt?
 
 ---
 
-## Lizenz / Credits
+## Lizenz
 
-* JSON Forms: © EclipseSource / Eclipse Public License
-* json-server: © typicode / MIT
+Dieses Projekt ist unter der **MIT-Lizenz** veröffentlicht.
+
+Lege eine Datei `LICENSE` im Projekt-Root an (Jahr/Name anpassen):
+
+```text
+MIT License
+
+Copyright (c) 2026 <Nouralrahman Hussain>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+---
+
+Wenn du möchtest, kann ich die README zusätzlich mit folgenden professionellen Elementen erweitern: `.env.example`, API-Beispiel-Requests (curl), Release-/Build-Abschnitt (Production Build), sowie eine kurze „User Journey“ (Schritt-für-Schritt: Login → Liste laden → Datensatz editieren → Share-Link).
+
