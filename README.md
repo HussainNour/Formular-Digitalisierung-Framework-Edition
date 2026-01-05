@@ -5,16 +5,7 @@
 Eine React-basierte Webanwendung zur strukturierten Pflege von Lehrplanungs-/Lehrveranstaltungsdaten. Die UI nutzt **JSON Forms (Material Renderers)**, um Datenmodelle als Formular- und Listenansichten darzustellen. Persistenz erfolgt über eine **Node/Express File-API**, die JSON-Dokumente im Dateisystem speichert.
 
 ---
-## Vorschau
-![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b1.png)
-![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b2.png)
-![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b3.png)
-![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b4.png)
-![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b5.png)
-![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b6.png)
-![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b7.png)
-![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b8.png)
-![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b9.png)
+
 
 
 ## Überblick
@@ -254,6 +245,17 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## Vorschau
+![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b1.png)
+![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b2.png)
+![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b3.png)
+![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b4.png)
+![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b5.png)
+![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b6.png)
+![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b7.png)
+![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b8.png)
+![frontendJsonForms](/jsonForms/Bilder/frontend_variante_b9.png)
 
 ---
 
